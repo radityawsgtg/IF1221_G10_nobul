@@ -8,12 +8,6 @@ jenis_aksi(skip).
 jenis_aksi(reverse).
 jenis_aksi(draw_two).
 
-:- dynamic(pemain_list/1).
-:- dynamic(urutan_pemain/1).
-:- dynamic(giliran_sekarang/1).
-:- dynamic(kartu_tangan/2).
-:- dynamic(discard_top/1).
-
 is_kartu(kartu(Warna, Jenis)) :- 
     warna(Warna), 
     (jenis_angka(Jenis) ; jenis_aksi(Jenis)).
