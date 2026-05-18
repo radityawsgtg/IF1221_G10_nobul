@@ -56,10 +56,38 @@ efek_reverse :-
     get_length(Urutan, Length),
     ( Length == 2 -> skip_giliran ; pindah_giliran ).
 
+efek_draw_two :-
+    write('Kartu DRAW TWO dimainkan! Pemain berikutnya akan mengambil 2 kartu.'), nl,
+    retractall(efek_kartu_pending(_)),
+    asserta(efek_kartu_pending(draw_two)),
+    skip_giliran.
+
+efek_wild :-
+    write('Kartu WILD dimainkan!'), nl,
+    write('Pilih warna aktif baru (merah/kuning/hijau/biru): '),
+    read(WarnaBaru),
+    retractall(warna_aktif(_)),
+    asserta(warna_aktif(WarnaBaru)),
+    write('Warna aktif sekarang adalah: '), write(WarnaBaru), nl,
+    pindah_giliran.
+
+efek_wild_draw_four :-
+    write('Kartu WILD DRAW FOUR dimainkan!'), nl,
+    write('Pilih warna aktif baru (merah/kuning/hijau/biru): '),
+    read(WarnaBaru),
+    retractall(warna_aktif(_)),
+    asserta(warna_aktif(WarnaBaru)),
+    retractall(efek_kartu_pending(_)),
+    asserta(efek_kartu_pending(wild_draw_four)),
+    write('Warna aktif sekarang: '), write(WarnaBaru), nl,
+    skip_giliran.
+
 proses_efek_kartu(kartu(_, skip)) :- !, efek_skip.
 proses_efek_kartu(kartu(_, reverse)) :- !, efek_reverse.
+proses_efek_kartu(kartu(_, draw_two)) :- !, efek_draw_two.
+proses_efek_kartu(kartu(hitam, wild)) :- !, efek_wild.
+proses_efek_kartu(kartu(hitam, wild_draw_four)) :- !, efek_wild_draw_four.
 proses_efek_kartu(_) :- pindah_giliran.
-
 
 mainkanKartu(NomorUrut) :-
     giliran_sekarang(Pemain),
@@ -91,18 +119,65 @@ mainkanKartu(NomorUrut) :-
         write('Kartu tidak valid! Silakan pilih kartu lain.'), nl
     ).
 
-valid_match(kartu(Warna, _), kartu(Warna, _)).
+% --- FIX VALID MATCH (Mengecek warna_aktif jika kartu teratas adalah kartu hitam) ---
+valid_match(kartu(hitam, wild), kartu(_, TopJenis)) :-
+    !, TopJenis \= wild.
+
+valid_match(kartu(hitam, wild_draw_four), kartu(TopWarna, TopJenis)) :-
+    !,
+    TopJenis \= wild_draw_four,
+    giliran_sekarang(Pemain),
+    kartu_tangan(Pemain, ListKartu),
+    ( warna_aktif(WarnaSedangAktif) -> 
+        WarnaCek = WarnaSedangAktif 
+    ; 
+        WarnaCek = TopWarna 
+    ),
+    \+ punya_kartu_alternatif(ListKartu, WarnaCek, TopJenis).
+
+valid_match(kartu(Warna, _), kartu(TopWarna, TopJenis)) :-
+    ( (TopJenis == wild ; TopJenis == wild_draw_four) ->
+        ( warna_aktif(WarnaAktif) -> Warna == WarnaAktif ; true )
+    ;
+        Warna == TopWarna
+    ).
+
 valid_match(kartu(_, Jenis), kartu(_, Jenis)).
-valid_match(kartu(hitam, _), _).
+
+punya_kartu_alternatif([kartu(Warna, _) | _], Warna, _) :- 
+    Warna \= hitam.
+punya_kartu_alternatif([kartu(_, Jenis) | _], _, Jenis).
+punya_kartu_alternatif([_ | Tail], WarnaCek, TopJenis) :- 
+    punya_kartu_alternatif(Tail, WarnaCek, TopJenis).
 
 ambilKartu :-
     giliran_sekarang(Pemain),
-    kartu_tangan(Pemain, ListKartu),
-    kartu_acak(KartuBaru),
-    append_list(ListKartu, [KartuBaru], ListBaru), 
-    retract(kartu_tangan(Pemain, ListKartu)),
-    asserta(kartu_tangan(Pemain, ListBaru)),
-    write(Pemain), write(' mengambil kartu baru: '), write(KartuBaru), nl,
+    ( efek_kartu_pending(EfekAktif), EfekAktif \= none ->
+        proses_ambil_efek(Pemain, EfekAktif)
+    ;
+        kartu_tangan(Pemain, ListKartu),
+        kartu_acak(KartuBaru),
+        append_list(ListKartu, [KartuBaru], ListBaru), 
+        retract(kartu_tangan(Pemain, ListKartu)),
+        asserta(kartu_tangan(Pemain, ListBaru)),
+        write(Pemain), write(' mengambil kartu acak: '), write(KartuBaru), nl,
+        hapus_status_UNI(Pemain),
+        pindah_giliran
+    ).
+
+proses_ambil_efek(Pemain, draw_two) :-
+    write(Pemain), write(' terkena efek DRAW TWO dan harus mengambil 2 kartu!'), nl,
+    penalti_ambil(Pemain, 2),
+    retractall(efek_kartu_pending(_)),
+    asserta(efek_kartu_pending(none)),
+    hapus_status_UNI(Pemain),
+    pindah_giliran.
+
+proses_ambil_efek(Pemain, wild_draw_four) :-
+    write(Pemain), write(' terkena efek WILD DRAW FOUR dan harus mengambil 4 kartu!'), nl,
+    penalti_ambil(Pemain, 4),
+    retractall(efek_kartu_pending(_)),
+    asserta(efek_kartu_pending(none)),
     hapus_status_UNI(Pemain),
     pindah_giliran.
 
@@ -171,11 +246,15 @@ tantang :-
         write('Tantangan BERHASIL! '), write(PemainWD4), write(' curang (punya warna '), write(WarnaLama), write(')!'), nl,
         write(PemainWD4), write(' dihukum mengambil 4 kartu.'), nl,
         penalti_ambil(PemainWD4, 4),
+        retractall(efek_kartu_pending(_)),
+        asserta(efek_kartu_pending(none)),
         pindah_giliran
     ;
         write('Tantangan GAGAL! '), write(PemainWD4), write(' bermain jujur.'), nl,
         write(Penantang), write(' yang menuduh menerima hukuman mengambil 6 kartu.'), nl,
         penalti_ambil(Penantang, 6),
+        retractall(efek_kartu_pending(_)),
+        asserta(efek_kartu_pending(none)),
         pindah_giliran
     ).
 
