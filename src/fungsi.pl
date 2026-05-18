@@ -69,3 +69,17 @@ semua_kartu(SemuaDek) :-
     wild_list(Wilds),
     generate_kartu_warna(WList, JList, KartuWarna),
     append_list(KartuWarna, Wilds, SemuaDek).
+
+random_permutation(List, RandomPermutation) :-
+    tambah_bobot_acak(List, ListBerbobot),
+    keysort(ListBerbobot, ListTerurut),
+    hapus_bobot(ListTerurut, RandomPermutation).
+
+tambah_bobot_acak([], []).
+tambah_bobot_acak([H|T], [Bobot-H|TR]) :-
+    random(1, 100000, Bobot),
+    tambah_bobot_acak(T, TR).
+
+hapus_bobot([], []).
+hapus_bobot([_-H|T], [H|TR]) :-
+    hapus_bobot(T, TR).
