@@ -4,6 +4,7 @@ startGame :-
     retractall(giliran_sekarang(_)),
     retractall(kartu_tangan(_, _)),
     retractall(discard_top(_)),
+    retractall(tumpukan_dek(_)),
     
     write('Masukkan jumlah pemain (2-4): '),
     read(Jumlah),
@@ -11,6 +12,10 @@ startGame :-
         inisiasi_pemain(Jumlah, [], ListPemain),
         random_permutation(ListPemain, UrutanAcak),
         asserta(urutan_pemain(UrutanAcak)),
+
+        semua_kartu(FullDeck),
+        random_permutation(FullDeck, ShuffledDeck),
+        asserta(tumpukan_dek(ShuffledDeck)),
 
         bagi_kartu_awal(UrutanAcak),
         
@@ -42,21 +47,61 @@ inisiasi_pemain(N, Terdaftar, Hasil) :-
     (\+ cek_huruf_besar(Nama) ->
         write('Nama harus diawali dengan huruf besar! Coba lagi.'), nl,
         inisiasi_pemain(N, Terdaftar, Hasil)
-    ; member(Nama, Terdaftar) ->
+    ; is_element(Nama, Terdaftar) ->
         write('Nama sudah digunakan. Masukkan nama lain: '), nl,
         inisiasi_pemain(N, Terdaftar, Hasil)
     ;
         N1 is N-1,
-        append(Terdaftar, [Nama], TerdaftarBaru),
+        append_list(Terdaftar, [Nama], TerdaftarBaru),
         inisiasi_pemain(N1, TerdaftarBaru, Hasil)
     ).
 
 inisiasi_discard :-
-    asserta(discard_top(kartu(merah, 6))).
+    kartu_acak(TopCard),
+    asserta(discard_top(TopCard)).
+
+% Penanganan dek habis
+kartu_acak(Kartu) :-
+    tumpukan_dek([H|T]),
+    !,
+    Kartu = H,
+    retract(tumpukan_dek(_)),
+    asserta(tumpukan_dek(T)).
 
 kartu_acak(Kartu) :-
-    findall(kartu(Warna, Jenis), is_kartu(kartu(Warna, Jenis)), ListSemua),
-    random_member(Kartu, ListSemua).
+    tumpukan_dek([]),
+    write('Tumpukan dek habis! Mengocok ulang kartu dari tumpukan discard...'), nl,
+    semua_kartu(FullDeck),
+    (discard_top(Top) -> TrueTop = [Top] ; TrueTop = []),
+    urutan_pemain(Urutan),
+    collect_active_hands(Urutan, AllHands),
+    append_list(AllHands, TrueTop, KartuAktif),
+    exclude_cards(KartuAktif, FullDeck, DekBaru),
+    random_permutation(DekBaru, ShuffledDeck),
+
+    (ShuffledDeck == [] ->
+        write('Error: Semua kartu sedang dipegang pemain! Dek tidak dapat diisi ulang.'), nl, fail
+    ;
+        ShuffledDeck = [Kartu|SisaBaru],
+        retract(tumpukan_deck(_)),
+        asserta(tumpukan_deck(SisaBaru))
+    ).
+
+% Helper untuk mengumpulkan kartu yang dipegang pemain
+collect_active_hands([], []).
+collect_active_hands([Pemain|T], Result) :-
+    kartu_tangan(Pemain, ListKartu),
+    collect_active_hands(T, Rest),
+    append_list(ListKartu, Rest, Result).
+
+% Helper untuk memisahkan daftar kartu aktif dari total dek
+exclude_cards([], List, List).
+exclude_cards([H|T], List, Result) :-
+    (select_element(H, List, Temp) ->
+        exclude_cards(T, Temp, Result)
+    ;
+        exclude_cards(T, List, Result)
+    ).
 
 bagi_kartu_awal([]).
 bagi_kartu_awal([Pemain|T]) :-
@@ -70,21 +115,3 @@ bagi_n_kartu(N, [Kartu|T]) :-
     kartu_acak(Kartu),
     N1 is N-1,
     bagi_n_kartu(N1, T).
-
-inisiasi_discard :-
-    findall(kartu(W, A), (warna(W), jenis_angka(A)), ListAngka),
-    random_member(KartuAwal, ListAngka),
-    asserta(discard_top(KartuAwal)).
-
-random_member(X, L) :-
-    length(L, Len),
-    random(0, Len, Index),
-    nth0(Index, L, X).
-
-random_permutation(L, R) :-
-    findall(Rand-X, (member(X, L), random(Rand)), Pairs),
-    keysort(Pairs, Sorted),
-    findall(X, member(_-X, Sorted), R).
-
-nth0(0, [H|_], H) :- !.
-nth0(N, [_|T], H) :- N > 0, N1 is N-1, nth0(N1, T, H).

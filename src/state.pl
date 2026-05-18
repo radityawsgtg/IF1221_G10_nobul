@@ -14,7 +14,7 @@ warna(kuning).
 warna(hijau).
 warna(biru).
 
-jenis_angka(X) :- between(0, 9, X).
+jenis_angka(X) :- between_manual(0, 9, X).
 jenis_aksi(skip).
 jenis_aksi(reverse).
 jenis_aksi(draw_two).
