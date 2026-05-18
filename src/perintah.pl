@@ -33,7 +33,7 @@ cetak_urutan([H|T]) :- write(H), write(' - '), cetak_urutan(T).
 cetak_info_pemain([], _).
 cetak_info_pemain([Pemain|T], Index) :-
     kartu_tangan(Pemain, ListKartu),
-    length(ListKartu, Jumlah),
+    get_length(ListKartu, Jumlah),
     write('Nama pemain '), write(Index), write(': '), write(Pemain), nl,
     write('Jumlah kartu: '), write(Jumlah), nl, nl,
     NextIndex is Index+1,
