@@ -42,12 +42,12 @@ inisiasi_pemain(N, Terdaftar, Hasil) :-
     (\+ cek_huruf_besar(Nama) ->
         write('Nama harus diawali dengan huruf besar! Coba lagi.'), nl,
         inisiasi_pemain(N, Terdaftar, Hasil)
-    ; member(Nama, Terdaftar) ->
+    ; is_element(Nama, Terdaftar) ->
         write('Nama sudah digunakan. Masukkan nama lain: '), nl,
         inisiasi_pemain(N, Terdaftar, Hasil)
     ;
         N1 is N-1,
-        append(Terdaftar, [Nama], TerdaftarBaru),
+        append_list(Terdaftar, [Nama], TerdaftarBaru),
         inisiasi_pemain(N1, TerdaftarBaru, Hasil)
     ).
 
@@ -55,7 +55,7 @@ inisiasi_discard :-
     asserta(discard_top(kartu(merah, 6))).
 
 kartu_acak(Kartu) :-
-    findall(kartu(Warna, Jenis), is_kartu(kartu(Warna, Jenis)), ListSemua),
+    semua_kartu(Deck),
     random_member(Kartu, ListSemua).
 
 bagi_kartu_awal([]).
@@ -70,21 +70,3 @@ bagi_n_kartu(N, [Kartu|T]) :-
     kartu_acak(Kartu),
     N1 is N-1,
     bagi_n_kartu(N1, T).
-
-inisiasi_discard :-
-    findall(kartu(W, A), (warna(W), jenis_angka(A)), ListAngka),
-    random_member(KartuAwal, ListAngka),
-    asserta(discard_top(KartuAwal)).
-
-random_member(X, L) :-
-    length(L, Len),
-    random(0, Len, Index),
-    nth0(Index, L, X).
-
-random_permutation(L, R) :-
-    findall(Rand-X, (member(X, L), random(Rand)), Pairs),
-    keysort(Pairs, Sorted),
-    findall(X, member(_-X, Sorted), R).
-
-nth0(0, [H|_], H) :- !.
-nth0(N, [_|T], H) :- N > 0, N1 is N-1, nth0(N1, T, H).

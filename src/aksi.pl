@@ -1,11 +1,11 @@
 mainkanKartu(NomorUrut) :-
     giliran_sekarang(Pemain),
     kartu_tangan(Pemain, ListKartu),
-    nth1(NomorUrut, ListKartu, KartuPilihan),
+    get_element(NomorUrut, ListKartu, KartuPilihan),
     discard_top(Top),
     
     (valid_match(KartuPilihan, Top) ->
-        select(KartuPilihan, ListKartu, ListBaru),
+        select_element(KartuPilihan, ListKartu, ListBaru),
         retract(kartu_tangan(Pemain, ListKartu)),
         asserta(kartu_tangan(Pemain, ListBaru)),
         
@@ -26,21 +26,8 @@ ambilKartu :-
     giliran_sekarang(Pemain),
     kartu_tangan(Pemain, ListKartu),
     kartu_acak(KartuBaru),
-    append(ListKartu, [KartuBaru], ListBaru),
+    append_list(ListKartu, [KartuBaru], ListBaru), 
     retract(kartu_tangan(Pemain, ListKartu)),
     asserta(kartu_tangan(Pemain, ListBaru)),
-    write(Pemain), write(' mendapatkan kartu: '), write(KartuBaru), nl,
+    write(Pemain), write(' mengambil kartu.'), nl,
     pindah_giliran.
-
-pindah_giliran :-
-    urutan_pemain(Urutan),
-    giliran_sekarang(Sekarang),
-    append(_, [Sekarang|Belakang], Urutan),
-    (Belakang \= [] -> 
-        Belakang = [Berikutnya|_] 
-    ; 
-        Urutan = [Berikutnya|_] 
-    ),
-    retract(giliran_sekarang(Sekarang)),
-    asserta(giliran_sekarang(Berikutnya)),
-    write('Giliran '), write(Berikutnya), write('.'), nl.
