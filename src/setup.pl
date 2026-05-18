@@ -4,6 +4,7 @@ startGame :-
     retractall(giliran_sekarang(_)),
     retractall(kartu_tangan(_, _)),
     retractall(discard_top(_)),
+    retractall(tumpukan_dek(_)),
     
     write('Masukkan jumlah pemain (2-4): '),
     read(Jumlah),
@@ -11,6 +12,10 @@ startGame :-
         inisiasi_pemain(Jumlah, [], ListPemain),
         random_permutation(ListPemain, UrutanAcak),
         asserta(urutan_pemain(UrutanAcak)),
+
+        semua_kartu(FullDeck),
+        random_permutation(FullDeck, ShuffledDeck),
+        asserta(tumpukan_dek(ShuffledDeck)),
 
         bagi_kartu_awal(UrutanAcak),
         
@@ -52,11 +57,51 @@ inisiasi_pemain(N, Terdaftar, Hasil) :-
     ).
 
 inisiasi_discard :-
-    asserta(discard_top(kartu(merah, 6))).
+    kartu_acak(TopCard),
+    asserta(discard_top(TopCard)).
+
+% Penanganan dek habis
+kartu_acak(Kartu) :-
+    tumpukan_dek([H|T]),
+    !,
+    Kartu = H,
+    retract(tumpukan_dek(_)),
+    asserta(tumpukan_dek(T)).
 
 kartu_acak(Kartu) :-
-    semua_kartu(Deck),
-    random_member(Kartu, ListSemua).
+    tumpukan_dek([]),
+    write('Tumpukan dek habis! Mengocok ulang kartu dari tumpukan discard...'), nl,
+    semua_kartu(FullDeck),
+    (discard_top(Top) -> TrueTop = [Top] ; TrueTop = []),
+    urutan_pemain(Urutan),
+    collect_active_hands(Urutan, AllHands),
+    append_list(AllHands, TrueTop, KartuAktif),
+    exclude_cards(KartuAktif, FullDeck, DekBaru),
+    random_permutation(DekBaru, ShuffledDeck),
+
+    (ShuffledDeck == [] ->
+        write('Error: Semua kartu sedang dipegang pemain! Dek tidak dapat diisi ulang.'), nl, fail
+    ;
+        ShuffledDeck = [Kartu|SisaBaru],
+        retract(tumpukan_deck(_)),
+        asserta(tumpukan_deck(SisaBaru))
+    ).
+
+% Helper untuk mengumpulkan kartu yang dipegang pemain
+collect_active_hands([], []).
+collect_active_hands([Pemain|T], Result) :-
+    kartu_tangan(Pemain, ListKartu),
+    collect_active_hands(T, Rest),
+    append_list(ListKartu, Rest, Result).
+
+% Helper untuk memisahkan daftar kartu aktif dari total dek
+exclude_cards([], List, List).
+exclude_cards([H|T], List, Result) :-
+    (select_element(H, List, Temp) ->
+        exclude_cards(T, Temp, Result)
+    ;
+        exclude_cards(T, List, Result)
+    ).
 
 bagi_kartu_awal([]).
 bagi_kartu_awal([Pemain|T]) :-

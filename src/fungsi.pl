@@ -63,9 +63,9 @@ kombinasi_jenis(_, [], []) :- !.
 kombinasi_jenis(Warna, [Jenis|TJenis], [kartu(Warna, Jenis)|Rest]) :-
     kombinasi_jenis(Warna, TJenis, Rest).
 
-semua_kartu(SemuaDeck) :-
+semua_kartu(SemuaDek) :-
     warna_list(WList),
     jenis_list(JList),
     wild_list(Wilds),
     generate_kartu_warna(WList, JList, KartuWarna),
-    append_list(KartuWarna, Wilds, SemuaDeck).
+    append_list(KartuWarna, Wilds, SemuaDek).
