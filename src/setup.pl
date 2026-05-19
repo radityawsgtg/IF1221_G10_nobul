@@ -60,7 +60,6 @@ inisiasi_discard :-
     kartu_acak(TopCard),
     asserta(discard_top(TopCard)).
 
-% Penanganan dek habis
 kartu_acak(Kartu) :-
     tumpukan_dek([H|T]),
     !,
@@ -87,14 +86,12 @@ kartu_acak(Kartu) :-
         asserta(tumpukan_deck(SisaBaru))
     ).
 
-% Helper untuk mengumpulkan kartu yang dipegang pemain
 collect_active_hands([], []).
 collect_active_hands([Pemain|T], Result) :-
     kartu_tangan(Pemain, ListKartu),
     collect_active_hands(T, Rest),
     append_list(ListKartu, Rest, Result).
 
-% Helper untuk memisahkan daftar kartu aktif dari total dek
 exclude_cards([], List, List).
 exclude_cards([H|T], List, Result) :-
     (select_element(H, List, Temp) ->

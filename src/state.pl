@@ -1,13 +1,4 @@
 %ini buat fitur tantang sama uninya, biar bisa di ubah ubah
-:- dynamic(pemain_list/1).
-:- dynamic(urutan_pemain/1).
-:- dynamic(giliran_sekarang/1).
-:- dynamic(kartu_tangan/2).
-:- dynamic(discard_top/1).
-:- dynamic(arah_permainan/1).
-
-:- dynamic(warna_sebelum_wild/1).
-:- dynamic(status_uni/1).
 
 warna(merah).
 warna(kuning).
