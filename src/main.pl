@@ -10,13 +10,15 @@
 :- dynamic(efek_kartu_pending/1).
 :- dynamic(status_UNI/1).
 :- dynamic(tumpukan_dek/1).
+:- dynamic(seed/1).
 
-% Include modul
+%Include modul
 :- include('state.pl').
 :- include('setup.pl').
 :- include('fungsi.pl').
 :- include('aksi.pl').
 :- include('perintah.pl').
+:- include('fileio.pl').
 
 % Start game
 :- initialization(startGame).
