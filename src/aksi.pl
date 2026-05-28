@@ -21,7 +21,8 @@ pindah_giliran :-
     find_next_player(Current, Next),
     retract(giliran_sekarang(Current)),
     asserta(giliran_sekarang(Next)),
-    write('Giliran berikutnya: '), write(Next), nl.
+    write('Giliran berikutnya: '), write(Next), nl,
+    godsHand. % <--- Sisipkan ini
 
 skip_giliran :-
     giliran_sekarang(Current),
@@ -30,8 +31,9 @@ skip_giliran :-
     retract(giliran_sekarang(Current)),
     asserta(giliran_sekarang(Next)),
     write('Giliran '), write(TargetSkip), write(' dilewati!'), nl,
-    write('Giliran berikutnya: '), write(Next), nl.
-
+    write('Giliran berikutnya: '), write(Next), nl,
+    godsHand. % <--- Sisipkan ini
+    
 efek_skip :-
     write('Kartu SKIP dimainkan! '), nl,
     skip_giliran.
@@ -311,3 +313,63 @@ endGame :-
     write('Urutan pemenang:'), nl,
     cetak_leaderboard(DataUrut, 1), nl,
     write('Selamat, '), write(Pemenang), write(' menjadi pemenang!'), nl.
+
+% ==========================================
+% BONUS: GOD'S HAND (Orang 2)
+% ==========================================
+godsHand :-
+    urutan_pemain(Urutan),
+    % Validasi: Jangan trigger kalau semua pemain hanya punya 1 kartu
+    ( cek_semua_satu_kartu(Urutan) ->
+        true 
+    ;
+        % Menggunakan PRNG dari fungsi.pl
+        prng_next(Rand),
+        Chance is Rand mod 100,
+        (Chance < 15 -> % Peluang trigger: 15% (Syarat tugas: 10-20%)
+            jalankan_gods_hand(Urutan)
+        ;
+            true
+        )
+    ).
+
+cek_semua_satu_kartu([]).
+cek_semua_satu_kartu([P|T]) :-
+    kartu_tangan(P, Kartu),
+    get_length(Kartu, Len),
+    Len =< 1,
+    cek_semua_satu_kartu(T).
+
+jalankan_gods_hand(Urutan) :-
+    % Mengacak urutan pemain untuk memilih Source dan Target yang berbeda
+    tambah_bobot_acak(Urutan, UrutanAcak),
+    keysort(UrutanAcak, UrutanSorted),
+    hapus_bobot(UrutanSorted, ListAcak),
+    ListAcak = [Source, Target | _],
+    
+    kartu_tangan(Source, TanganSource),
+    get_length(TanganSource, LenSource),
+    
+    (LenSource > 0 ->
+        prng_next(RandCard),
+        Index is (RandCard mod LenSource) + 1,
+        
+        get_element(Index, TanganSource, KartuPindah),
+        select_element(KartuPindah, TanganSource, TanganSourceBaru),
+        
+        kartu_tangan(Target, TanganTarget),
+        append_list(TanganTarget, [KartuPindah], TanganTargetBaru),
+        
+        retract(kartu_tangan(Source, TanganSource)),
+        asserta(kartu_tangan(Source, TanganSourceBaru)),
+        retract(kartu_tangan(Target, TanganTarget)),
+        asserta(kartu_tangan(Target, TanganTargetBaru)),
+        
+        write('=========================================='), nl,
+        write('✨ GOD''S HAND TERPICU! ✨'), nl,
+        write('Sebuah keajaiban kosmik mengambil kartu dari '), write(Source), 
+        write(' dan memindahkannya ke tangan '), write(Target), write('!'), nl,
+        write('=========================================='), nl
+    ;
+        true
+    ).

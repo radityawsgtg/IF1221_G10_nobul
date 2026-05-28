@@ -86,9 +86,9 @@ prng_init :-
 
 prng_next(Rand) :-
     seed(S),
-    A = 1103515245,
+    A = 6767,
     C = 12345,
-    M = 2147483648,
+    M = 111311130,
     NextSeed is (A*S + C) mod M,
     retract(seed(S)),
     asserta(seed(NextSeed)),
