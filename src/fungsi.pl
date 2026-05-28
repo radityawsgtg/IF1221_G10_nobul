@@ -69,3 +69,32 @@ semua_kartu(SemuaDek) :-
     wild_list(Wilds),
     generate_kartu_warna(WList, JList, KartuWarna),
     append_list(KartuWarna, Wilds, SemuaDek).
+
+random_permutation(List, RandomPermutation) :-
+    tambah_bobot_acak(List, ListBerbobot),
+    keysort(ListBerbobot, ListTerurut),
+    hapus_bobot(ListTerurut, RandomPermutation).
+
+hapus_bobot([], []).
+hapus_bobot([_-H|T], [H|TR]) :-
+    hapus_bobot(T, TR).
+
+prng_init :-
+    (seed(_) -> true; 
+        asserta(seed(12345))
+    ).
+
+prng_next(Rand) :-
+    seed(S),
+    A = 1103515245,
+    C = 12345,
+    M = 2147483648,
+    NextSeed is (A*S + C) mod M,
+    retract(seed(S)),
+    asserta(seed(NextSeed)),
+    Rand = NextSeed.
+
+tambah_bobot_acak([], []).
+tambah_bobot_acak([H|T], [Bobot-H|TR]) :-
+    prng_next(Bobot),
+    tambah_bobot_acak(T, TR).

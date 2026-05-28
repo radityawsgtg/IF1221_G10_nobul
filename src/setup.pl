@@ -4,6 +4,16 @@ startGame :-
     retractall(giliran_sekarang(_)),
     retractall(kartu_tangan(_, _)),
     retractall(discard_top(_)),
+    retractall(tumpukan_dek(_)),
+    retractall(arah_permainan(_)),
+    retractall(warna_aktif(_)),
+    retractall(efek_kartu_pending(_)),
+    retractall(status_uni(_)),
+    retractall(warna_sebelum_wild(_)),
+    asserta(arah_permainan(kanan)),
+    asserta(efek_kartu_pending(none)),
+    
+    prng_init,
     
     write('Masukkan jumlah pemain (2-4): '),
     read(Jumlah),
@@ -13,11 +23,9 @@ startGame :-
         asserta(urutan_pemain(UrutanAcak)),
 
         bagi_kartu_awal(UrutanAcak),
-        
         inisiasi_discard,
         UrutanAcak = [PemainPertama|_],
         asserta(giliran_sekarang(PemainPertama)),
-        
         write('Permainan berhasil diinisiasi!'), nl,
         write('Urutan pemain: '), write(UrutanAcak), nl,
         discard_top(Top), write('Kartu discard top: '), write(Top), nl,
@@ -52,11 +60,53 @@ inisiasi_pemain(N, Terdaftar, Hasil) :-
     ).
 
 inisiasi_discard :-
-    asserta(discard_top(kartu(merah, 6))).
+    kartu_acak(TopCard),
+    TopCard = kartu(_, Jenis),
+    (integer(Jenis) -> asserta(discard_top(TopCard));
+        tumpukan_dek(DekLama),
+        append_list(DekLama, [TopCard], DekBaru),
+        retract(tumpukan_dek(_)),
+        asserta(tumpukan_dek(DekBaru)),
+        inisiasi_discard
+    ).
 
 kartu_acak(Kartu) :-
-    findall(kartu(Warna, Jenis), is_kartu(kartu(Warna, Jenis)), ListSemua),
-    random_member(Kartu, ListSemua).
+    tumpukan_dek([H|T]),
+    !,
+    Kartu = H,
+    retract(tumpukan_dek(_)),
+    asserta(tumpukan_dek(T)).
+
+kartu_acak(Kartu) :-
+    tumpukan_dek([]),
+    write('Tumpukan dek habis! Mengocok ulang kartu dari tumpukan discard...'), nl,
+    semua_kartu(FullDeck),
+    (discard_top(Top) -> TrueTop = [Top] ; TrueTop = []),
+    urutan_pemain(Urutan),
+    collect_active_hands(Urutan, AllHands),
+    append_list(AllHands, TrueTop, KartuAktif),
+    exclude_cards(KartuAktif, FullDeck, DekBaru),
+    random_permutation(DekBaru, ShuffledDeck),
+
+    (ShuffledDeck == [] ->
+        write('Error: Semua kartu sedang dipegang pemain! Dek tidak dapat diisi ulang.'), nl, fail;
+        ShuffledDeck = [Kartu|SisaBaru],
+        retract(tumpukan_deck(_)),
+        asserta(tumpukan_deck(SisaBaru))
+    ).
+
+collect_active_hands([], []).
+collect_active_hands([Pemain|T], Result) :-
+    kartu_tangan(Pemain, ListKartu),
+    collect_active_hands(T, Rest),
+    append_list(ListKartu, Rest, Result).
+
+exclude_cards([], List, List).
+exclude_cards([H|T], List, Result) :-
+    (select_element(H, List, Temp) ->
+        exclude_cards(T, Temp, Result);
+        exclude_cards(T, List, Result)
+    ).
 
 bagi_kartu_awal([]).
 bagi_kartu_awal([Pemain|T]) :-
