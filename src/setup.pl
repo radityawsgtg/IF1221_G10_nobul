@@ -5,6 +5,15 @@ startGame :-
     retractall(kartu_tangan(_, _)),
     retractall(discard_top(_)),
     retractall(tumpukan_dek(_)),
+    retractall(arah_permainan(_)),
+    retractall(warna_aktif(_)),
+    retractall(efek_kartu_pending(_)),
+    retractall(status_uni(_)),
+    retractall(warna_sebelum_wild(_)),
+    asserta(arah_permainan(kanan)),
+    asserta(efek_kartu_pending(none)),
+    
+    prng_init,
     
     write('Masukkan jumlah pemain (2-4): '),
     read(Jumlah),
@@ -18,11 +27,9 @@ startGame :-
         asserta(tumpukan_dek(ShuffledDeck)),
 
         bagi_kartu_awal(UrutanAcak),
-        
         inisiasi_discard,
         UrutanAcak = [PemainPertama|_],
         asserta(giliran_sekarang(PemainPertama)),
-        
         write('Permainan berhasil diinisiasi!'), nl,
         write('Urutan pemain: '), write(UrutanAcak), nl,
         discard_top(Top), write('Kartu discard top: '), write(Top), nl,
@@ -58,7 +65,14 @@ inisiasi_pemain(N, Terdaftar, Hasil) :-
 
 inisiasi_discard :-
     kartu_acak(TopCard),
-    asserta(discard_top(TopCard)).
+    TopCard = kartu(_, Jenis),
+    (integer(Jenis) -> asserta(discard_top(TopCard));
+        tumpukan_dek(DekLama),
+        append_list(DekLama, [TopCard], DekBaru),
+        retract(tumpukan_dek(_)),
+        asserta(tumpukan_dek(DekBaru)),
+        inisiasi_discard
+    ).
 
 kartu_acak(Kartu) :-
     tumpukan_dek([H|T]),
@@ -79,8 +93,7 @@ kartu_acak(Kartu) :-
     random_permutation(DekBaru, ShuffledDeck),
 
     (ShuffledDeck == [] ->
-        write('Error: Semua kartu sedang dipegang pemain! Dek tidak dapat diisi ulang.'), nl, fail
-    ;
+        write('Error: Semua kartu sedang dipegang pemain! Dek tidak dapat diisi ulang.'), nl, fail;
         ShuffledDeck = [Kartu|SisaBaru],
         retract(tumpukan_deck(_)),
         asserta(tumpukan_deck(SisaBaru))
@@ -95,8 +108,7 @@ collect_active_hands([Pemain|T], Result) :-
 exclude_cards([], List, List).
 exclude_cards([H|T], List, Result) :-
     (select_element(H, List, Temp) ->
-        exclude_cards(T, Temp, Result)
-    ;
+        exclude_cards(T, Temp, Result);
         exclude_cards(T, List, Result)
     ).
 
