@@ -21,8 +21,9 @@ pindah_giliran :-
     find_next_player(Current, Next),
     retract(giliran_sekarang(Current)),
     asserta(giliran_sekarang(Next)),
-    write('Giliran berikutnya: '), write(Next), nl,
-    godsHand. % <--- Sisipkan ini
+    retractall(sudah_swap(_)),
+    nl, write('Giliran '), write(Next), write('.'), nl,
+    godsHand.
 
 skip_giliran :-
     giliran_sekarang(Current),
@@ -30,9 +31,52 @@ skip_giliran :-
     find_next_player(TargetSkip, Next),
     retract(giliran_sekarang(Current)),
     asserta(giliran_sekarang(Next)),
+    retractall(sudah_swap(_)),
     write('Giliran '), write(TargetSkip), write(' dilewati!'), nl,
-    write('Giliran berikutnya: '), write(Next), nl,
-    godsHand. % <--- Sisipkan ini
+    nl, write('Giliran '), write(Next), write('.'), nl,
+    godsHand.
+
+swapKartu(NoUrutku, NoUrutTeman) :-
+    mode_permainan(turnamen),
+    !,
+    giliran_sekarang(Pemain),
+    ( sudah_swap(Pemain) ->
+        write('Aksi ditolak! Anda hanya bisa melakukan swap kartu sekali dalam satu giliran.'), nl, fail
+    ;
+        tim(Pemain, TeamNum),
+        tim(Teman, TeamNum),
+        Pemain \= Teman, !,
+        kartu_tangan(Pemain, Tanganku),
+        kartu_tangan(Teman, TanganTeman),
+        get_length(Tanganku, Lku),
+        get_length(TanganTeman, Lteman),
+        ( (Lku =< 1 ; Lteman =< 1) ->
+            write('Aksi ditolak! Tidak dapat melakukan swap jika salah satu pemain memiliki sisa 1 kartu.'), nl, fail
+        ;
+            ( get_element(NoUrutku, Tanganku, Kartuku), get_element(NoUrutTeman, TanganTeman, KartuTeman) ->
+                select_element(Kartuku, Tanganku, TangankuBaru),
+                append_list(TangankuBaru, [KartuTeman], TangankuFinal),
+                select_element(KartuTeman, TanganTeman, TanganTemanBaru),
+                append_list(TanganTemanBaru, [Kartuku], TanganTemanFinal),
+                retract(kartu_tangan(Pemain, Tanganku)),
+                asserta(kartu_tangan(Pemain, TangankuFinal)),
+                retract(kartu_tangan(Teman, TanganTeman)),
+                asserta(kartu_tangan(Teman, TanganTemanFinal)),
+                asserta(sudah_swap(Pemain)),
+                Kartuku = kartu(W1, J1), KartuTeman = kartu(W2, J2),
+                nl, write(Pemain), write(' menukar kartu '), write(W1), write('-'), write(J1),
+                write(' dengan kartu '), write(W2), write('-'), write(J2),
+                write(' milik '), write(Teman), write('.'), nl, nl,
+                write('Pertukaran kartu berhasil.'), nl,
+                pindah_giliran
+            ;
+                write('Aksi ditolak! Indeks kartu tidak valid.'), nl, fail
+            )
+        )
+    ).
+
+swapKartu(_, _) :-
+    write('Perintah swapKartu hanya tersedia pada Mode Turnamen!'), nl, fail.
     
 efek_skip :-
     write('Kartu SKIP dimainkan! '), nl,
@@ -301,6 +345,33 @@ cari_pemenang([Pemain|_], Pemain) :-
     kartu_tangan(Pemain, []).
 cari_pemenang([_|T], Pemenang) :-
     cari_pemenang(T, Pemenang).
+
+endGame :-
+    mode_permainan(turnamen),
+    !,
+    urutan_pemain(Urutan),
+    cari_pemenang(Urutan, Pemenang),
+    write('Permainan selesai! '), write(Pemenang), write(' menghabiskan semua kartunya!'), nl, nl,
+    write('Berikut perhitungan poin sisa kartu.'), nl,
+    cetak_semua_breakdown(Urutan), nl,
+    write('Berikut perhitungan poin untuk masing-masing tim.'), nl,
+    findall(P1, tim(P1, 1), [T1A, T1B]),
+    findall(P2, tim(P2, 2), [T2A, T2B]),
+    kartu_tangan(T1A, K1A), hitung_total_poin(K1A, P1A),
+    kartu_tangan(T1B, K1B), hitung_total_poin(K1B, P1B),
+    TotalT1 is P1A + P1B,
+    kartu_tangan(T2A, K2A), hitung_total_poin(K2A, P2A),
+    kartu_tangan(T2B, K2B), hitung_total_poin(K2B, P2B),
+    TotalT2 is P2A + P2B,
+    write('Tim 1 ('), write(T1A), write(', '), write(T1B), write(') : '),
+    write(P1A), write(' + '), write(P1B), write(' = '), write(TotalT1), write(' poin'), nl,
+    write('Tim 2 ('), write(T2A), write(', '), write(T2B), write(') : '),
+    write(P2A), write(' + '), write(P2B), write(' = '), write(TotalT2), write(' poin'), nl, nl,
+    ( TotalT1 < TotalT2 ->
+        write('Selamat, Tim 1 menjadi pemenang!')
+    ;
+        write('Selamat, Tim 2 menjadi pemenang!')
+    ), nl.
 
 endGame :-
     urutan_pemain(Urutan),
