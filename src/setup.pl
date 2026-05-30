@@ -10,33 +10,72 @@ startGame :-
     retractall(efek_kartu_pending(_)),
     retractall(status_uni(_)),
     retractall(warna_sebelum_wild(_)),
+    retractall(mode_permainan(_)),
+    retractall(tim(_, _)),
+    retractall(sudah_swap(_)),
     asserta(arah_permainan(kanan)),
     asserta(efek_kartu_pending(none)),
-    
     prng_init,
-    
+    write('Tersedia 2 mode permainan.'), nl,
+    write('1. Mode klasik'), nl,
+    write('2. Mode turnamen'), nl, nl,
+    write('Pilih mode permainan: '),
+    read(Mode),
+    (
+        Mode == 1 ->
+            asserta(mode_permainan(klasik)),
+            jalankan_mode_klasik
+        ;
+        Mode == 2 ->
+            asserta(mode_permainan(turnamen)),
+            jalankan_mode_turnamen
+        ;
+            write('Mode tidak valid!'), nl, fail
+    ).
+
+jalankan_mode_klasik :-
     write('Masukkan jumlah pemain (2-4): '),
     read(Jumlah),
     (validasi_jumlah(Jumlah) ->
-        inisiasi_pemain(Jumlah, [], ListPemain),
+        inisiasi_pemain_loop(1, Jumlah, [], ListPemain),
         random_permutation(ListPemain, UrutanAcak),
         asserta(urutan_pemain(UrutanAcak)),
-
         semua_kartu(FullDeck),
         random_permutation(FullDeck, ShuffledDeck),
         asserta(tumpukan_dek(ShuffledDeck)),
-
         bagi_kartu_awal(UrutanAcak),
         inisiasi_discard,
         UrutanAcak = [PemainPertama|_],
         asserta(giliran_sekarang(PemainPertama)),
-        write('Permainan berhasil diinisiasi!'), nl,
-        write('Urutan pemain: '), write(UrutanAcak), nl,
-        discard_top(Top), write('Kartu discard top: '), write(Top), nl,
+        write('Permainan Mode Klasik berhasil diinisiasi!'), nl,
+        write('Urutan pemain: '), cetak_urutan(UrutanAcak), write('.'), nl,
+        discard_top(Top), Top = kartu(W, J), write('Kartu discard top: '), write(W), write('-'), write(J), write('.'), nl,
         write('Giliran '), write(PemainPertama), write('.'), nl
     ;
         write('Mohon masukkan angka antara 2-4.'), nl, fail
     ).
+
+jalankan_mode_turnamen :-
+    write('Permainan dimulai dalam mode turnamen.'), nl, nl,
+    inisiasi_pemain_loop(1, 4, [], ListPemain),
+    random_permutation(ListPemain, [A, B, C, D]),
+    asserta(tim(A, 1)), asserta(tim(C, 1)),
+    asserta(tim(B, 2)), asserta(tim(D, 2)),
+    UrutanTurnamen = [A, B, C, D],
+    asserta(urutan_pemain(UrutanTurnamen)),
+    semua_kartu(FullDeck),
+    random_permutation(FullDeck, ShuffledDeck),
+    asserta(tumpukan_dek(ShuffledDeck)),
+    bagi_kartu_awal(UrutanTurnamen),
+    inisiasi_discard,
+    asserta(giliran_sekarang(A)),
+    nl, write('Membentuk tim secara acak...'), nl, nl,
+    write('Tim 1 : '), write(A), write(', '), write(C), nl,
+    write('Tim 2 : '), write(B), write(', '), write(D), nl, nl,
+    write('Urutan pemain: '), cetak_urutan(UrutanTurnamen), write('.'), nl, nl,
+    write('Setiap pemain mendapatkan 7 kartu acak.'), nl,
+    discard_top(Top), Top = kartu(W, J), write('Kartu discard top: '), write(W), write('-'), write(J), write('.'), nl, nl,
+    write('Giliran '), write(A), write('.'), nl.
 
 validasi_jumlah(N) :- integer(N), N >= 2, N =< 4.
 
@@ -46,21 +85,30 @@ cek_huruf_besar(Nama) :-
     char_code(HurufPertama, Code),
     Code >= 65, Code =< 90.
 
-inisiasi_pemain(0, Terdaftar, Terdaftar) :- !.
-inisiasi_pemain(N, Terdaftar, Hasil) :-
-    N > 0,
-    write('Masukkan nama pemain: '),
+inisiasi_pemain_loop(Idx, Max, Terdaftar, Hasil) :-
+    Idx > Max, !, Hasil = Terdaftar.
+inisiasi_pemain_loop(Idx, Max, Terdaftar, Hasil) :-
+    Idx =< Max,
+    minta_nama(Idx, Terdaftar, Nama),
+    append_list(Terdaftar, [Nama], TerdaftarBaru),
+    NextIdx is Idx + 1,
+    inisiasi_pemain_loop(NextIdx, Max, TerdaftarBaru, Hasil).
+
+minta_nama(Idx, Terdaftar, NamaFinal) :-
+    write('Masukkan nama pemain '), write(Idx), write(': '),
     read(Nama),
+    validasi_nama_input(Idx, Nama, Terdaftar, NamaFinal).
+
+validasi_nama_input(Idx, Nama, Terdaftar, NamaFinal) :-
     (\+ cek_huruf_besar(Nama) ->
         write('Nama harus diawali dengan huruf besar! Coba lagi.'), nl,
-        inisiasi_pemain(N, Terdaftar, Hasil)
+        minta_nama(Idx, Terdaftar, NamaFinal)
     ; is_element(Nama, Terdaftar) ->
-        write('Nama sudah digunakan. Masukkan nama lain: '), nl,
-        inisiasi_pemain(N, Terdaftar, Hasil)
+        write('Nama sudah digunakan. Masukkan nama lain: '),
+        read(NamaBaru),
+        validasi_nama_input(Idx, NamaBaru, Terdaftar, NamaFinal)
     ;
-        N1 is N-1,
-        append_list(Terdaftar, [Nama], TerdaftarBaru),
-        inisiasi_pemain(N1, TerdaftarBaru, Hasil)
+        NamaFinal = Nama
     ).
 
 inisiasi_discard :-
@@ -91,7 +139,6 @@ kartu_acak(Kartu) :-
     append_list(AllHands, TrueTop, KartuAktif),
     exclude_cards(KartuAktif, FullDeck, DekBaru),
     random_permutation(DekBaru, ShuffledDeck),
-
     (ShuffledDeck == [] ->
         write('Error: Semua kartu sedang dipegang pemain! Dek tidak dapat diisi ulang.'), nl, fail;
         ShuffledDeck = [Kartu|SisaBaru],
