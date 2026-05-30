@@ -36,6 +36,14 @@ skip_giliran :-
     nl, write('Giliran '), write(Next), write('.'), nl,
     godsHand.
 
+dapatkan_warna_bawah(Warna) :-
+    discard_top(kartu(WTop, JTop)),
+    ( (JTop == wild ; JTop == wild_draw_four ; JTop == mimic) ->
+        (warna_aktif(WAktif) -> Warna = WAktif ; Warna = WTop)
+    ;
+        Warna = WTop
+    ).
+
 swapKartu(NoUrutku, NoUrutTeman) :-
     mode_permainan(turnamen),
     !,
@@ -84,15 +92,34 @@ efek_skip :-
 
 efek_reverse :-
     write('Kartu REVERSE dimainkan! Arah permainan dibalik.'), nl,
+    reverse_urutan.
+
+reverse_urutan :-
     get_direction(ArahLama),
     (ArahLama == kanan -> ArahBaru = kiri ; ArahBaru = kanan),
     retractall(arah_permainan(_)),
     asserta(arah_permainan(ArahBaru)),
     write('Arah permainan sekarang ke '), write(ArahBaru), write('.'), nl,
-    
     urutan_pemain(Urutan),
     get_length(Urutan, Length),
     (Length == 2 -> skip_giliran ; pindah_giliran).
+
+efek_mimic :-
+    write('Kartu MIMIC dimainkan!'), nl,
+    write('Pilih warna aktif baru (merah/kuning/hijau/biru): '),
+    read(WarnaBaru),
+    retractall(warna_aktif(_)),
+    asserta(warna_aktif(WarnaBaru)),
+    write('Warna aktif sekarang adalah: '), write(WarnaBaru), nl,
+    (kartu_aksi_terakhir(Aksi) ->
+        write('Mimic menyalin efek: '), write(Aksi), nl,
+        (Aksi == skip -> skip_giliran ;
+         Aksi == reverse -> reverse_urutan ;
+         Aksi == draw_two -> retractall(efek_kartu_pending(_)), asserta(efek_kartu_pending(draw_two)), pindah_giliran)
+    ;
+        write('Tidak ada kartu aksi sebelumnya. Mimic berfungsi seperti Wild biasa.'), nl,
+        pindah_giliran
+    ).
 
 efek_draw_two :-
     write('Kartu DRAW TWO dimainkan! Pemain berikutnya akan mengambil 2 kartu.'), nl,
@@ -120,11 +147,12 @@ efek_wild_draw_four :-
     write('Warna aktif sekarang: '), write(WarnaBaru), nl,
     pindah_giliran.
 
-proses_efek_kartu(kartu(_, skip)) :- !, efek_skip.
-proses_efek_kartu(kartu(_, reverse)) :- !, efek_reverse.
-proses_efek_kartu(kartu(_, draw_two)) :- !, efek_draw_two.
+proses_efek_kartu(kartu(_, skip)) :- !, retractall(kartu_aksi_terakhir(_)), asserta(kartu_aksi_terakhir(skip)), efek_skip.
+proses_efek_kartu(kartu(_, reverse)) :- !, retractall(kartu_aksi_terakhir(_)), asserta(kartu_aksi_terakhir(reverse)), efek_reverse.
+proses_efek_kartu(kartu(_, draw_two)) :- !, retractall(kartu_aksi_terakhir(_)), asserta(kartu_aksi_terakhir(draw_two)), efek_draw_two.
 proses_efek_kartu(kartu(hitam, wild)) :- !, efek_wild.
 proses_efek_kartu(kartu(hitam, wild_draw_four)) :- !, efek_wild_draw_four.
+proses_efek_kartu(kartu(hitam, mimic)) :- !, efek_mimic.
 proses_efek_kartu(_) :- pindah_giliran.
 
 mainkanKartu(NomorUrut) :-
@@ -135,15 +163,15 @@ mainkanKartu(NomorUrut) :-
         get_element(NomorUrut, ListKartu, KartuPilihan),
         discard_top(Top),
         (valid_match(KartuPilihan, Top) ->
-            Top = kartu(WarnaAktif, _),
-            (KartuPilihan = kartu(hitam, wild_draw_four) -> retractall(warna_sebelum_wild(_)),asserta(warna_sebelum_wild(WarnaAktif)) ; true),
+            dapatkan_warna_bawah(WarnaBawah),
+            (KartuPilihan = kartu(hitam, wild_draw_four) -> retractall(warna_sebelum_wild(_)),asserta(warna_sebelum_wild(WarnaBawah)) ; true),
             select_element(KartuPilihan, ListKartu, ListBaru),
             retract(kartu_tangan(Pemain, ListKartu)),
             asserta(kartu_tangan(Pemain, ListBaru)),
             retract(discard_top(Top)),
             asserta(discard_top(KartuPilihan)),
             write(Pemain), write(' memainkan kartu: '), write(KartuPilihan), nl,
-            (ListBaru == [] -> endGame; proses_efek_kartu(KartuPilihan))
+            (ListBaru == [], \+ kartu_tersembunyi(Pemain, _) -> endGame; proses_efek_kartu(KartuPilihan))
         ;
             write('Kartu tidak valid! Silakan pilih kartu lain.'), nl
         )
@@ -156,8 +184,10 @@ valid_match(kartu(hitam, wild_draw_four), kartu(_, TopJenis)) :-
     !,
     TopJenis \= wild_draw_four.
 
+valid_match(kartu(hitam, mimic), kartu(_, TopJenis)) :- !, TopJenis \= mimic.
+
 valid_match(kartu(Warna, _), kartu(TopWarna, TopJenis)) :-
-    ((TopJenis == wild ; TopJenis == wild_draw_four) -> (warna_aktif(WarnaAktif) -> Warna == WarnaAktif ; true) ;
+    ((TopJenis == wild ; TopJenis == wild_draw_four ; TopJenis == mimic) -> (warna_aktif(WarnaAktif) -> Warna == WarnaAktif ; true) ;
         Warna == TopWarna).
 valid_match(kartu(_, Jenis), kartu(_, Jenis)).
 
@@ -199,12 +229,15 @@ uni(NomorUrut) :-
     (efek_kartu_pending(Efek), Efek \= none ->
         write('Aksi ditolak! Anda sedang terkena penalti '), write(Efek), write('. Wajib gunakan ambilKartu atau tantang.'), nl ;
         giliran_sekarang(Pemain),
-        kartu_tangan(Pemain, ListKartu),
-        get_length(ListKartu, Jumlah),
-        (Jumlah == 2 ->
+        dapatkan_semua_kartu_pemain(Pemain, ListTotal),
+        get_length(ListTotal, TotalJumlah),
+        (TotalJumlah == 2 ->
+            kartu_tangan(Pemain, ListKartu),
             get_element(NomorUrut, ListKartu, KartuPilihan),
             discard_top(Top),
             (valid_match(KartuPilihan, Top) ->
+                dapatkan_warna_bawah(WarnaBawah),
+                (KartuPilihan = kartu(hitam, wild_draw_four) -> retractall(warna_sebelum_wild(_)),asserta(warna_sebelum_wild(WarnaBawah)) ; true),
                 select_element(KartuPilihan, ListKartu, ListBaru),
                 retract(kartu_tangan(Pemain, ListKartu)),
                 asserta(kartu_tangan(Pemain, ListBaru)),
@@ -213,13 +246,13 @@ uni(NomorUrut) :-
                 write(Pemain), write(' memainkan kartu: '), write(KartuPilihan), nl,
                 write(Pemain), write(' UNI!!!'), nl,
                 asserta(status_uni(Pemain)),
-                (ListBaru == [] -> endGame; proses_efek_kartu(KartuPilihan))
+                (ListBaru == [], \+ kartu_tersembunyi(Pemain, _) -> endGame; proses_efek_kartu(KartuPilihan))
             ;
                 write('Kartu tidak valid! Anda terkena penalti ambil 1 kartu.'), nl,
                 penalti_ambil(Pemain, 1),
                 pindah_giliran)
         ;
-            write('Gagal! Kartu Anda tidak bersisa 1 setelah ini. Anda terkena penalti.'), nl,
+            write('Gagal! Total kartu Anda (termasuk yang disembunyikan) tidak bersisa 1 setelah ini. Anda terkena penalti.'), nl,
             penalti_ambil(Pemain, 1),
             pindah_giliran
         )
@@ -268,6 +301,7 @@ cek_punya_warna([_ | T], Warna) :- cek_punya_warna(T, Warna).
 penalti_ambil(_, 0) :- !.
 penalti_ambil(PemainTarget, N) :-
     N > 0,
+    retractall(status_uni(PemainTarget)),
     kartu_tangan(PemainTarget, ListKartu),
     kartu_acak(KartuBaru),
     append_list(ListKartu, [KartuBaru], ListBaru),
@@ -278,9 +312,9 @@ penalti_ambil(PemainTarget, N) :-
 
 tangkap(TargetPemain) :-
     giliran_sekarang(Penangkap),
-    kartu_tangan(TargetPemain, ListKartuTarget),
-    get_length(ListKartuTarget, JumlahKartu),
-    (JumlahKartu == 1, \+ status_uni(TargetPemain) ->
+    dapatkan_semua_kartu_pemain(TargetPemain, ListTotalTarget),
+    get_length(ListTotalTarget, TotalKartu),
+    (TotalKartu == 1, \+ status_uni(TargetPemain) ->
         write(TargetPemain), write(' tertangkap tidak menyerukan UNI.'), nl,
         write(TargetPemain), write(' mendapatkan 2 kartu penalti.'), nl,
         penalti_ambil(TargetPemain, 2),
@@ -303,19 +337,23 @@ hitung_total_poin([Kartu|T], Total) :-
     hitung_total_poin(T, SisaPoin),
     Total is Poin + SisaPoin.
 
-ambil_data_pemain([], _, []).
-ambil_data_pemain([Pemain|T], Index, [v(Poin, Jumlah, Index, Pemain)|SisaData]) :-
+dapatkan_semua_kartu_pemain(Pemain, ListTotal) :-
     kartu_tangan(Pemain, ListKartu),
-    get_length(ListKartu, Jumlah),
-    hitung_total_poin(ListKartu, Poin),
+    (kartu_tersembunyi(Pemain, KS) -> append_list(ListKartu, [KS], ListTotal) ; ListTotal = ListKartu).
+
+ambil_data_pemain([], _, []).
+ambil_data_pemain([Pemain|T], Index, [[Poin, Jumlah, Index, Pemain]|SisaData]) :-
+    dapatkan_semua_kartu_pemain(Pemain, ListTotal),
+    get_length(ListTotal, Jumlah),
+    hitung_total_poin(ListTotal, Poin),
     NextIndex is Index + 1,
     ambil_data_pemain(T, NextIndex, SisaData).
 
 cetak_semua_breakdown([]).
 cetak_semua_breakdown([Pemain|T]) :-
     write(Pemain), write(': '),
-    kartu_tangan(Pemain, ListKartu),
-    cetak_breakdown_kartu(ListKartu),
+    dapatkan_semua_kartu_pemain(Pemain, ListTotal),
+    cetak_breakdown_kartu(ListTotal),
     cetak_semua_breakdown(T).
 
 cetak_breakdown_kartu([]) :- 
@@ -336,13 +374,13 @@ cetak_poin_kartu([Kartu|T]) :-
     hitung_poin_kartu(Kartu, Poin), write(Poin), write(' + '), cetak_poin_kartu(T).
 
 cetak_leaderboard([], _).
-cetak_leaderboard([v(Poin, _, _, Pemain)|T], Rank) :-
+cetak_leaderboard([[Poin, _, _, Pemain]|T], Rank) :-
     write(Rank), write('. '), write(Pemain), write(' ('), write(Poin), write(' poin)'), nl,
     NextRank is Rank + 1,
     cetak_leaderboard(T, NextRank).
 
 cari_pemenang([Pemain|_], Pemain) :-
-    kartu_tangan(Pemain, []).
+    kartu_tangan(Pemain, []), \+ kartu_tersembunyi(Pemain, _).
 cari_pemenang([_|T], Pemenang) :-
     cari_pemenang(T, Pemenang).
 
@@ -357,11 +395,11 @@ endGame :-
     write('Berikut perhitungan poin untuk masing-masing tim.'), nl,
     findall(P1, tim(P1, 1), [T1A, T1B]),
     findall(P2, tim(P2, 2), [T2A, T2B]),
-    kartu_tangan(T1A, K1A), hitung_total_poin(K1A, P1A),
-    kartu_tangan(T1B, K1B), hitung_total_poin(K1B, P1B),
+    dapatkan_semua_kartu_pemain(T1A, K1A), hitung_total_poin(K1A, P1A),
+    dapatkan_semua_kartu_pemain(T1B, K1B), hitung_total_poin(K1B, P1B),
     TotalT1 is P1A + P1B,
-    kartu_tangan(T2A, K2A), hitung_total_poin(K2A, P2A),
-    kartu_tangan(T2B, K2B), hitung_total_poin(K2B, P2B),
+    dapatkan_semua_kartu_pemain(T2A, K2A), hitung_total_poin(K2A, P2A),
+    dapatkan_semua_kartu_pemain(T2B, K2B), hitung_total_poin(K2B, P2B),
     TotalT2 is P2A + P2B,
     write('Tim 1 ('), write(T1A), write(', '), write(T1B), write(') : '),
     write(P1A), write(' + '), write(P1B), write(' = '), write(TotalT1), write(' poin'), nl,
@@ -380,24 +418,18 @@ endGame :-
     write('Berikut perhitungan poin sisa kartu.'), nl,
     cetak_semua_breakdown(Urutan), nl,
     ambil_data_pemain(Urutan, 1, DataPemain),
-    sort(DataPemain, DataUrut),
+    insertion_sort(DataPemain, DataUrut),
     write('Urutan pemenang:'), nl,
     cetak_leaderboard(DataUrut, 1), nl,
     write('Selamat, '), write(Pemenang), write(' menjadi pemenang!'), nl.
 
-% ==========================================
-% BONUS: GOD'S HAND (Orang 2)
-% ==========================================
 godsHand :-
     urutan_pemain(Urutan),
-    % Validasi: Jangan trigger kalau semua pemain hanya punya 1 kartu
     ( cek_semua_satu_kartu(Urutan) ->
         true 
     ;
-        % Menggunakan PRNG dari fungsi.pl
-        prng_next(Rand),
-        Chance is Rand mod 100,
-        (Chance < 15 -> % Peluang trigger: 15% (Syarat tugas: 10-20%)
+        random(0, 100, Chance),
+        (Chance < 15 ->
             jalankan_gods_hand(Urutan)
         ;
             true
@@ -412,18 +444,15 @@ cek_semua_satu_kartu([P|T]) :-
     cek_semua_satu_kartu(T).
 
 jalankan_gods_hand(Urutan) :-
-    % Mengacak urutan pemain untuk memilih Source dan Target yang berbeda
-    tambah_bobot_acak(Urutan, UrutanAcak),
-    keysort(UrutanAcak, UrutanSorted),
-    hapus_bobot(UrutanSorted, ListAcak),
+    random_list(Urutan, ListAcak),
     ListAcak = [Source, Target | _],
     
     kartu_tangan(Source, TanganSource),
     get_length(TanganSource, LenSource),
     
     (LenSource > 0 ->
-        prng_next(RandCard),
-        Index is (RandCard mod LenSource) + 1,
+        Batas is LenSource + 1,
+        random(1, Batas, Index),
         
         get_element(Index, TanganSource, KartuPindah),
         select_element(KartuPindah, TanganSource, TanganSourceBaru),
@@ -443,4 +472,34 @@ jalankan_gods_hand(Urutan) :-
         write('=========================================='), nl
     ;
         true
+    ).
+
+sembunyikanKartu(NomorUrut) :-
+    giliran_sekarang(Pemain),
+    kartu_tangan(Pemain, ListKartu),
+    get_length(ListKartu, Jumlah),
+    (Jumlah =< 1 ->
+        write('Gagal! Anda tidak bisa menyembunyikan kartu jika hanya memiliki 1 kartu.'), nl
+    ; kartu_tersembunyi(Pemain, _) ->
+        write('Gagal! Anda sudah memiliki kartu yang disembunyikan.'), nl
+    ;
+        get_element(NomorUrut, ListKartu, KartuPilihan),
+        select_element(KartuPilihan, ListKartu, ListBaru),
+        retract(kartu_tangan(Pemain, ListKartu)),
+        asserta(kartu_tangan(Pemain, ListBaru)),
+        asserta(kartu_tersembunyi(Pemain, KartuPilihan)),
+        write('Kartu berhasil disembunyikan!'), nl
+    ).
+
+tampilkanKartu :-
+    giliran_sekarang(Pemain),
+    (kartu_tersembunyi(Pemain, KartuSembunyi) ->
+        retract(kartu_tersembunyi(Pemain, KartuSembunyi)),
+        kartu_tangan(Pemain, ListKartu),
+        append_list(ListKartu, [KartuSembunyi], ListBaru),
+        retract(kartu_tangan(Pemain, ListKartu)),
+        asserta(kartu_tangan(Pemain, ListBaru)),
+        write('Kartu yang disembunyikan telah dikembalikan ke tangan: '), write(KartuSembunyi), nl
+    ;
+        write('Anda tidak memiliki kartu yang disembunyikan.'), nl
     ).

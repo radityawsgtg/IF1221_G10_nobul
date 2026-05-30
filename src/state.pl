@@ -1,5 +1,3 @@
-%ini buat fitur tantang sama uninya, biar bisa di ubah ubah
-
 warna(merah).
 warna(kuning).
 warna(hijau).
@@ -16,3 +14,4 @@ is_kartu(kartu(Warna, Jenis)) :-
 
 is_kartu(kartu(hitam, wild)).
 is_kartu(kartu(hitam, wild_draw_four)).
+is_kartu(kartu(hitam, mimic)).

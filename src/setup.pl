@@ -13,9 +13,10 @@ startGame :-
     retractall(mode_permainan(_)),
     retractall(tim(_, _)),
     retractall(sudah_swap(_)),
+    retractall(kartu_aksi_terakhir(_)),
+    retractall(kartu_tersembunyi(_, _)),
     asserta(arah_permainan(kanan)),
     asserta(efek_kartu_pending(none)),
-    prng_init,
     write('Tersedia 2 mode permainan.'), nl,
     write('1. Mode klasik'), nl,
     write('2. Mode turnamen'), nl, nl,
@@ -38,10 +39,10 @@ jalankan_mode_klasik :-
     read(Jumlah),
     (validasi_jumlah(Jumlah) ->
         inisiasi_pemain_loop(1, Jumlah, [], ListPemain),
-        random_permutation(ListPemain, UrutanAcak),
+        random_list(ListPemain, UrutanAcak),
         asserta(urutan_pemain(UrutanAcak)),
         semua_kartu(FullDeck),
-        random_permutation(FullDeck, ShuffledDeck),
+        random_list(FullDeck, ShuffledDeck),
         asserta(tumpukan_dek(ShuffledDeck)),
         bagi_kartu_awal(UrutanAcak),
         inisiasi_discard,
@@ -58,13 +59,13 @@ jalankan_mode_klasik :-
 jalankan_mode_turnamen :-
     write('Permainan dimulai dalam mode turnamen.'), nl, nl,
     inisiasi_pemain_loop(1, 4, [], ListPemain),
-    random_permutation(ListPemain, [A, B, C, D]),
+    random_list(ListPemain, [A, B, C, D]),
     asserta(tim(A, 1)), asserta(tim(C, 1)),
     asserta(tim(B, 2)), asserta(tim(D, 2)),
     UrutanTurnamen = [A, B, C, D],
     asserta(urutan_pemain(UrutanTurnamen)),
     semua_kartu(FullDeck),
-    random_permutation(FullDeck, ShuffledDeck),
+    random_list(FullDeck, ShuffledDeck),
     asserta(tumpukan_dek(ShuffledDeck)),
     bagi_kartu_awal(UrutanTurnamen),
     inisiasi_discard,
@@ -138,12 +139,12 @@ kartu_acak(Kartu) :-
     collect_active_hands(Urutan, AllHands),
     append_list(AllHands, TrueTop, KartuAktif),
     exclude_cards(KartuAktif, FullDeck, DekBaru),
-    random_permutation(DekBaru, ShuffledDeck),
+    random_list(DekBaru, ShuffledDeck),
     (ShuffledDeck == [] ->
         write('Error: Semua kartu sedang dipegang pemain! Dek tidak dapat diisi ulang.'), nl, fail;
         ShuffledDeck = [Kartu|SisaBaru],
-        retract(tumpukan_deck(_)),
-        asserta(tumpukan_deck(SisaBaru))
+        retract(tumpukan_dek(_)),
+        asserta(tumpukan_dek(SisaBaru))
     ).
 
 collect_active_hands([], []).

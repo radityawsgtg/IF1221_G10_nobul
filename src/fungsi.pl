@@ -51,7 +51,7 @@ between_manual(Min, Max, X) :-
 % Fungsi findall untuk generate kartu
 warna_list([merah, kuning, hijau, biru]).
 jenis_list([0,1,2,3,4,5,6,7,8,9,skip,reverse,draw_two]).
-wild_list([kartu(hitam, wild), kartu(hitam, wild_draw_four)]).
+wild_list([kartu(hitam, wild), kartu(hitam, wild_draw_four), kartu(hitam, mimic)]).
 
 generate_kartu_warna([], _, []) :- !.
 generate_kartu_warna([Warna|TWarna], JenisList, Result) :-
@@ -70,31 +70,31 @@ semua_kartu(SemuaDek) :-
     generate_kartu_warna(WList, JList, KartuWarna),
     append_list(KartuWarna, Wilds, SemuaDek).
 
-random_permutation(List, RandomPermutation) :-
-    tambah_bobot_acak(List, ListBerbobot),
-    keysort(ListBerbobot, ListTerurut),
-    hapus_bobot(ListTerurut, RandomPermutation).
 
-hapus_bobot([], []).
-hapus_bobot([_-H|T], [H|TR]) :-
-    hapus_bobot(T, TR).
+% Fungsi random_permutation
+% Mengacak elemen list
+random_list([], []).
+random_list(List, [Element|PermutedRest]) :-
+    get_length(List, Len),
+    UpperLimit is Len + 1,
+    random(1, UpperLimit, Index),
+    get_element(Index, List, Element),
+    select_element(Element, List, RemainingList),
+    random_list(RemainingList, PermutedRest).
 
-prng_init :-
-    (seed(_) -> true; 
-        asserta(seed(12345))
-    ).
+% Fungsi sort
+% Mengurutkan elemen
+insertion_sort([], []).
+insertion_sort([H|T], Sorted) :-
+    insertion_sort(T, SortedTail),
+    insert(H, SortedTail, Sorted).
 
-prng_next(Rand) :-
-    seed(S),
-    A = 6767,
-    C = 12345,
-    M = 111311130,
-    NextSeed is (A*S + C) mod M,
-    retract(seed(S)),
-    asserta(seed(NextSeed)),
-    Rand = NextSeed.
-
-tambah_bobot_acak([], []).
-tambah_bobot_acak([H|T], [Bobot-H|TR]) :-
-    prng_next(Bobot),
-    tambah_bobot_acak(T, TR).
+insert(X, [], [X]) :- !.
+insert([P1, J1, Idx1, Pem1], [[P2, J2, Idx2, Pem2]|T], [[P1, J1, Idx1, Pem1], [P2, J2, Idx2, Pem2]|T]) :-
+    P1 < P2, !.
+insert([P1, J1, Idx1, Pem1], [[P2, J2, Idx2, Pem2]|T], [[P1, J1, Idx1, Pem1], [P2, J2, Idx2, Pem2]|T]) :-
+    P1 == P2, J1 < J2, !.
+insert([P1, J1, Idx1, Pem1], [[P2, J2, Idx2, Pem2]|T], [[P1, J1, Idx1, Pem1], [P2, J2, Idx2, Pem2]|T]) :-
+    P1 == P2, J1 == J2, Idx1 < Idx2, !.
+insert(X, [H|T], [H|SortedTail]) :-
+    insert(X, T, SortedTail).

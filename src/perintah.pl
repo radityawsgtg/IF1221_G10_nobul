@@ -14,7 +14,7 @@ lihatKartu :-
     giliran_sekarang(Pemain),
     kartu_tangan(Pemain, ListKartu),
     write('Berikut kartu yang anda miliki.'), nl,
-    cetak_kartu_berurut(ListKartu, 1), nl,
+    cetak_kartu_berurut_pribadi(ListKartu, 1, Pemain), nl,
     ( mode_permainan(turnamen) ->
         tim(Pemain, TeamNum),
         tim(Teman, TeamNum),
@@ -25,6 +25,15 @@ lihatKartu :-
     ;
         true
     ).
+
+cetak_kartu_berurut_pribadi([], Index, Pemain) :-
+    (kartu_tersembunyi(Pemain, kartu(W, J)) ->
+        write(Index), write('. '), write(W), write('-'), write(J), write(' (disembunyikan)'), nl
+    ; true).
+cetak_kartu_berurut_pribadi([kartu(W, J)|T], Index, Pemain) :-
+    write(Index), write('. '), write(W), write('-'), write(J), nl,
+    NextIndex is Index+1,
+    cetak_kartu_berurut_pribadi(T, NextIndex, Pemain).
 
 cetak_kartu_berurut([], _).
 cetak_kartu_berurut([kartu(W, J)|T], Index) :-
