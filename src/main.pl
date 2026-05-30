@@ -8,9 +8,12 @@
 :- dynamic(status_uni/1).
 :- dynamic(warna_aktif/1).
 :- dynamic(efek_kartu_pending/1).
-:- dynamic(status_UNI/1).
 :- dynamic(tumpukan_dek/1).
-:- dynamic(seed/1).
+:- dynamic(kartu_aksi_terakhir/1).
+:- dynamic(kartu_tersembunyi/2).
+:- dynamic(mode_permainan/1).
+:- dynamic(tim/2).
+:- dynamic(sudah_swap/1).
 
 %Include modul
 :- include('state.pl').

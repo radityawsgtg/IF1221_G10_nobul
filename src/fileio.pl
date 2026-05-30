@@ -23,6 +23,15 @@ saveGame :-
     cetak_semua_kartu_pemain_file(Stream, Urutan),
     findall(P, status_uni(P), ListUNI),
     write(Stream, 'status_UNI:'), cetak_list_reguler_file(Stream, ListUNI), write(Stream, '.'), nl(Stream),
+    
+    (kartu_aksi_terakhir(AksiTerakhir) ->
+        write(Stream, 'kartu_aksi_terakhir:'), write(Stream, AksiTerakhir), write(Stream, '.'), nl(Stream)
+    ;
+        write(Stream, 'kartu_aksi_terakhir:none.'), nl(Stream)
+    ),
+    findall(kartu_tersembunyi(P,K), kartu_tersembunyi(P,K), ListSembunyi),
+    write(Stream, 'kartu_tersembunyi:'), cetak_list_sembunyi_file(Stream, ListSembunyi), write(Stream, '.'), nl(Stream),
+    
     close(Stream),
     write('Status permainan berhasil disimpan ke '), write(FileName), nl.
 
@@ -51,6 +60,21 @@ cetak_list_kartu_file_tail(Stream, [H|T]) :-
     cetak_format_kartu_file(Stream, H),
     cetak_list_kartu_file_tail(Stream, T).
 
+cetak_list_sembunyi_file(Stream, []) :- write(Stream, '[]').
+cetak_list_sembunyi_file(Stream, [H|T]) :-
+    write(Stream, '['),
+    cetak_format_sembunyi(Stream, H),
+    cetak_list_sembunyi_tail(Stream, T).
+
+cetak_list_sembunyi_tail(Stream, []) :- write(Stream, ']').
+cetak_list_sembunyi_tail(Stream, [H|T]) :-
+    write(Stream, ','),
+    cetak_format_sembunyi(Stream, H),
+    cetak_list_sembunyi_tail(Stream, T).
+
+cetak_format_sembunyi(Stream, kartu_tersembunyi(P, K)) :-
+    write(Stream, 'kartu_tersembunyi(\''), write(Stream, P), write(Stream, '\','), write(Stream, K), write(Stream, ')').
+
 cetak_semua_kartu_pemain_file(_, []).
 cetak_semua_kartu_pemain_file(Stream, [Pemain|T]) :-
     write(Stream, 'kartu(\''), write(Stream, Pemain), write(Stream, '\'):'),
@@ -72,6 +96,9 @@ loadGame :-
         retractall(status_uni(_)),
         retractall(mode_permainan(_)),
         retractall(tim(_, _)),
+        retractall(sudah_swap(_)),
+        retractall(kartu_aksi_terakhir(_)),
+        retractall(kartu_tersembunyi(_, _)),
         baca_baris_chars(Stream),
         close(Stream),
         write('Status permainan berhasil dimuat!'), nl,
@@ -133,6 +160,12 @@ parse_key_value(discard_top, Warna - Jenis) :- asserta(discard_top(kartu(Warna, 
 parse_key_value(arah_permainan, Arah) :- asserta(arah_permainan(Arah)).
 parse_key_value(warna_aktif, Warna) :- asserta(warna_aktif(Warna)).
 parse_key_value(status_UNI, ListUNI) :- assert_status_uni(ListUNI).
+
+parse_key_value(kartu_aksi_terakhir, none) :- !.
+parse_key_value(kartu_aksi_terakhir, Aksi) :- asserta(kartu_aksi_terakhir(Aksi)).
+
+parse_key_value(kartu_tersembunyi, ListSembunyi) :- assert_tersembunyi(ListSembunyi).
+
 parse_key_value(Key, ListKartuMinus) :-
     atom_chars(Key, Chars),
     Chars = ['k','a','r','t','u','(','\'' | Rest],
@@ -152,3 +185,8 @@ assert_status_uni([]).
 assert_status_uni([H|T]) :-
     asserta(status_uni(H)),
     assert_status_uni(T).
+
+assert_tersembunyi([]).
+assert_tersembunyi([kartu_tersembunyi(P, K)|T]) :-
+    asserta(kartu_tersembunyi(P, K)),
+    assert_tersembunyi(T).
