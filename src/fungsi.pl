@@ -9,7 +9,7 @@ append_list([Head|Tail], List2, [Head|ResultTail]) :-
 get_length([], 0).
 get_length([_|Tail], Length) :- 
     get_length(Tail, TailLength), 
-    Length is TailLength + 1.
+    Length is TailLength+1.
 
 % Fungsi nth1
 % Mencari elemen berdasarkan indeks / mencari indeks berdasarkan elemen
@@ -17,7 +17,7 @@ get_length([_|Tail], Length) :-
 get_element(1, [Head|_], Head) :- !.
 get_element(Index, [_|Tail], Element) :- 
     Index > 1, 
-    NewIndex is Index - 1, 
+    NewIndex is Index-1, 
     get_element(NewIndex, Tail, Element).
 
 % Fungsi member
@@ -45,7 +45,7 @@ select_element(Element, [Head|Tail], [Head|ResultTail]) :-
 between_manual(Min, Max, Min) :- Min =< Max.
 between_manual(Min, Max, X) :-
     Min < Max,
-    Next is Min + 1,
+    Next is Min+1,
     between_manual(Next, Max, X).
 
 % Fungsi findall untuk generate kartu
@@ -76,7 +76,7 @@ semua_kartu(SemuaDek) :-
 random_list([], []).
 random_list(List, [Element|PermutedRest]) :-
     get_length(List, Len),
-    UpperLimit is Len + 1,
+    UpperLimit is Len+1,
     random(1, UpperLimit, Index),
     get_element(Index, List, Element),
     select_element(Element, List, RemainingList),

@@ -1,0 +1,14 @@
+mode:turnamen.
+tim1:['Raihan','Nathan'].
+tim2:['Radit','Bagas'].
+urutan_pemain:['Nathan','Bagas','Raihan','Radit'].
+giliran:'Nathan'.
+discard_top:hijau-2.
+arah_permainan:kanan.
+kartu('Nathan'):[hijau-6,kuning-draw_two,kuning-5,biru-skip,biru-5,biru-1,merah-8].
+kartu('Bagas'):[biru-8,hijau-reverse,hijau-0,kuning-1,merah-0,merah-4,kuning-7].
+kartu('Raihan'):[merah-9,merah-skip,hitam-mimic,kuning-reverse,merah-6,merah-1,merah-2].
+kartu('Radit'):[kuning-skip,hijau-7,hijau-9,hijau-skip,hijau-draw_two,merah-draw_two,biru-2].
+status_UNI:[].
+kartu_aksi_terakhir:none.
+kartu_tersembunyi:[].

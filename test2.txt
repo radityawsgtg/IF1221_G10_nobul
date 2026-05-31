@@ -1,0 +1,11 @@
+mode:klasik.
+urutan_pemain:['Raihan','Nathan','Bagas'].
+giliran:'Nathan'.
+discard_top:hijau-8.
+arah_permainan:kanan.
+kartu('Raihan'):[biru-7,kuning-4,kuning-draw_two,kuning-1,hitam-mimic,kuning-2,biru-1,hijau-9].
+kartu('Nathan'):[hijau-5,merah-9,biru-3,biru-6,kuning-8,hijau-1,biru-skip].
+kartu('Bagas'):[merah-1,hitam-wild_draw_four,hijau-4,merah-2,hijau-2,merah-8,biru-5].
+status_UNI:['Raihan'].
+kartu_aksi_terakhir:none.
+kartu_tersembunyi:[].

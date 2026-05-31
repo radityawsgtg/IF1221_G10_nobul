@@ -22,6 +22,3 @@
 :- include('aksi.pl').
 :- include('perintah.pl').
 :- include('fileio.pl').
-
-% Start game
-:- initialization(startGame).

@@ -2,7 +2,7 @@ lihatCommand :-
     write('Aksi utama yang tersedia:'), nl,
     write('1. mainkanKartu(NomorUrut)'), nl,
     write('2. ambilKartu'), nl,
-    ( mode_permainan(turnamen) -> write('3. swapKartu(NoUrutku, NoUrutTeman)'), nl ; true ),
+    (mode_permainan(turnamen) -> write('3. swapKartu(NoUrutku, NoUrutTeman)'), nl ; true ),
     write('Aksi pendukung yang tersedia:'), nl,
     write('1. lihatCommand'), nl,
     write('2. lihatKartu'), nl,
@@ -15,7 +15,7 @@ lihatKartu :-
     kartu_tangan(Pemain, ListKartu),
     write('Berikut kartu yang anda miliki.'), nl,
     cetak_kartu_berurut_pribadi(ListKartu, 1, Pemain), nl,
-    ( mode_permainan(turnamen) ->
+    (mode_permainan(turnamen) ->
         tim(Pemain, TeamNum),
         tim(Teman, TeamNum),
         Pemain \= Teman, !,
@@ -45,7 +45,7 @@ cekInfo :-
     discard_top(Top), Top = kartu(W, J),
     urutan_pemain(Urutan),
     write('Kartu discard top: '), write(W), write('-'), write(J), write('.'), nl, nl,
-    ( mode_permainan(turnamen) ->
+    (mode_permainan(turnamen) ->
         findall(P1, tim(P1, 1), [T1A, T1B]),
         findall(P2, tim(P2, 2), [T2A, T2B]),
         write('Tim 1 : '), write(T1A), write(', '), write(T1B), nl,
