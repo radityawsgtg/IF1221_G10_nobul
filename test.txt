@@ -1,7 +1,0 @@
-urutan_pemain: [Radit,Nathan]
-giliran: Radit
-discard_top: kuning-5
-kartu_Radit: [hijau-1, biru-draw_two, hijau-3, merah-1, hitam-wild_draw_four, biru-4, merah-9, merah-5]
-kartu_Nathan: [hijau-0, hijau-9, hijau-5, merah-6, merah-skip, hijau-draw_two]
-arah_permainan: kanan
-status_UNI: []
