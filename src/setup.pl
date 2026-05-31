@@ -22,8 +22,7 @@ startGame :-
     write('2. Mode turnamen'), nl, nl,
     write('Pilih mode permainan: '),
     read(Mode),
-    (
-        Mode == 1 ->
+    (Mode == 1 ->
             asserta(mode_permainan(klasik)),
             jalankan_mode_klasik
         ;
@@ -92,7 +91,7 @@ inisiasi_pemain_loop(Idx, Max, Terdaftar, Hasil) :-
     Idx =< Max,
     minta_nama(Idx, Terdaftar, Nama),
     append_list(Terdaftar, [Nama], TerdaftarBaru),
-    NextIdx is Idx + 1,
+    NextIdx is Idx+1,
     inisiasi_pemain_loop(NextIdx, Max, TerdaftarBaru, Hasil).
 
 minta_nama(Idx, Terdaftar, NamaFinal) :-

@@ -2,7 +2,7 @@ saveGame :-
     write('Masukkan nama file penyimpanan (contoh: \'permainan1.txt\'.): '),
     read(FileName),
     open(FileName, write, Stream),
-    ( mode_permainan(turnamen) ->
+    (mode_permainan(turnamen) ->
         write(Stream, 'mode:turnamen.'), nl(Stream),
         findall(P1, tim(P1, 1), [T1A, T1B]),
         findall(P2, tim(P2, 2), [T2A, T2B]),
@@ -132,11 +132,16 @@ read_line_chars_helper(Stream, Char, [Char|Rest]) :-
 parse_line_chars(Chars) :-
     split_key_value(Chars, KeyChars, ValueCharsRaw),
     trim_space(ValueCharsRaw, ValueCharsTrimmed),
-    append_list(ValueCharsTrimmed, ['.'], ValueCharsFinal),
+    hapus_titik_akhir(ValueCharsTrimmed, ValueTanpaTitik),
+    append_list(ValueTanpaTitik, ['.'], ValueCharsFinal),
     atom_chars(Key, KeyChars),
     read_term_from_chars(ValueCharsFinal, Term, [variable_names(Vars)]),
     bind_vars(Vars),
     parse_key_value(Key, Term).
+
+hapus_titik_akhir([], []).
+hapus_titik_akhir(['.'], []) :- !.
+hapus_titik_akhir([H|T], [H|TRes]) :- hapus_titik_akhir(T, TRes).
 
 bind_vars([]).
 bind_vars([_=Var|T]) :-

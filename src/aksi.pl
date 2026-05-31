@@ -38,7 +38,7 @@ skip_giliran :-
 
 dapatkan_warna_bawah(Warna) :-
     discard_top(kartu(WTop, JTop)),
-    ( (JTop == wild ; JTop == wild_draw_four ; JTop == mimic) ->
+    ((JTop == wild ; JTop == wild_draw_four ; JTop == mimic) ->
         (warna_aktif(WAktif) -> Warna = WAktif ; Warna = WTop)
     ;
         Warna = WTop
@@ -48,7 +48,7 @@ swapKartu(NoUrutku, NoUrutTeman) :-
     mode_permainan(turnamen),
     !,
     giliran_sekarang(Pemain),
-    ( sudah_swap(Pemain) ->
+    (sudah_swap(Pemain) ->
         write('Aksi ditolak! Anda hanya bisa melakukan swap kartu sekali dalam satu giliran.'), nl, fail
     ;
         tim(Pemain, TeamNum),
@@ -58,10 +58,10 @@ swapKartu(NoUrutku, NoUrutTeman) :-
         kartu_tangan(Teman, TanganTeman),
         get_length(Tanganku, Lku),
         get_length(TanganTeman, Lteman),
-        ( (Lku =< 1 ; Lteman =< 1) ->
+        ((Lku =< 1 ; Lteman =< 1) ->
             write('Aksi ditolak! Tidak dapat melakukan swap jika salah satu pemain memiliki sisa 1 kartu.'), nl, fail
         ;
-            ( get_element(NoUrutku, Tanganku, Kartuku), get_element(NoUrutTeman, TanganTeman, KartuTeman) ->
+            (get_element(NoUrutku, Tanganku, Kartuku), get_element(NoUrutTeman, TanganTeman, KartuTeman) ->
                 select_element(Kartuku, Tanganku, TangankuBaru),
                 append_list(TangankuBaru, [KartuTeman], TangankuFinal),
                 select_element(KartuTeman, TanganTeman, TanganTemanBaru),
@@ -376,7 +376,7 @@ cetak_poin_kartu([Kartu|T]) :-
 cetak_leaderboard([], _).
 cetak_leaderboard([[Poin, _, _, Pemain]|T], Rank) :-
     write(Rank), write('. '), write(Pemain), write(' ('), write(Poin), write(' poin)'), nl,
-    NextRank is Rank + 1,
+    NextRank is Rank+1,
     cetak_leaderboard(T, NextRank).
 
 cari_pemenang([Pemain|_], Pemain) :-
@@ -405,7 +405,7 @@ endGame :-
     write(P1A), write(' + '), write(P1B), write(' = '), write(TotalT1), write(' poin'), nl,
     write('Tim 2 ('), write(T2A), write(', '), write(T2B), write(') : '),
     write(P2A), write(' + '), write(P2B), write(' = '), write(TotalT2), write(' poin'), nl, nl,
-    ( TotalT1 < TotalT2 ->
+    (TotalT1 < TotalT2 ->
         write('Selamat, Tim 1 menjadi pemenang!')
     ;
         write('Selamat, Tim 2 menjadi pemenang!')
@@ -425,7 +425,7 @@ endGame :-
 
 godsHand :-
     urutan_pemain(Urutan),
-    ( cek_semua_satu_kartu(Urutan) ->
+    (cek_semua_satu_kartu(Urutan) ->
         true 
     ;
         random(0, 100, Chance),
@@ -466,7 +466,7 @@ jalankan_gods_hand(Urutan) :-
         asserta(kartu_tangan(Target, TanganTargetBaru)),
         
         write('=========================================='), nl,
-        write('✨ GOD''S HAND TERPICU! ✨'), nl,
+        write('GOD''S HAND TERPICU!'), nl,
         write('Sebuah keajaiban kosmik mengambil kartu dari '), write(Source), 
         write(' dan memindahkannya ke tangan '), write(Target), write('!'), nl,
         write('=========================================='), nl
